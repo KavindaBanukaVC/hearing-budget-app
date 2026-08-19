@@ -185,13 +185,14 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-stone-100 text-stone-700">
                               {t.category}
                             </span>
+                            {t.status && <div className="mt-1 text-[11px] font-medium text-stone-500">{t.status}</div>}
                           </td>
                           <td className="px-4 py-4 text-xs text-stone-500 whitespace-nowrap">
                              {t.invoiceNo && <div title="Invoice">INV: {t.invoiceNo}</div>}
                              {t.poNo && <div title="PO">PO: {t.poNo}</div>}
                           </td>
                           <td className={`px-4 py-4 text-sm font-bold text-right whitespace-nowrap ${t.type === 'allocation' ? 'text-blue-600' : 'text-stone-800'}`}>
-                            {t.type === 'allocation' ? '' : '-'}LKR {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {t.type === 'allocation' ? '' : '-'}{t.currency || 'LKR'} {(t.currency === 'USD' ? (t.originalAmount ?? t.amount) : t.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-4 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center space-x-2">

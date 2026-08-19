@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Category, Transaction, Budget, TransactionType, AppSettings } from '../types';
-import { Download, Trash2, Plus, Edit2, Check, X, FolderCog, FileSpreadsheet, LogOut, UserCircle, Bell, Save, Key } from 'lucide-react';
+import { Download, Trash2, Plus, Edit2, Check, X, FolderCog, FileSpreadsheet, LogOut, UserCircle, Bell, Save, Key, DatabaseZap, Loader2 } from 'lucide-react';
 import { signOut, auth, doc, db, setDoc } from '../services/firebase';
 
 interface SettingsPageProps {
@@ -11,6 +11,8 @@ interface SettingsPageProps {
   onAddCategory: (name: string, type: TransactionType, color?: string) => void;
   onDeleteCategory: (id: string) => void;
   onEditCategory: (id: string, name: string, color?: string) => void;
+  importPreview: { total: number; add: number; update: number; skip: number; exclude: number; addLkr: number; convertedUsdItems: number; convertedUsdLkr: number; recognizedLkr: number; commitmentsLkr: number };
+  onSyncReviewedExpenses: () => Promise<void>;
 }
 
 const SettingsPage: React.FC<SettingsPageProps> = ({ 
@@ -20,7 +22,9 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   appSettings,
   onAddCategory,
   onDeleteCategory,
-  onEditCategory
+  onEditCategory,
+  importPreview,
+  onSyncReviewedExpenses
 }) => {
   const [newCatName, setNewCatName] = useState('');
   const [newCatType, setNewCatType] = useState<TransactionType>('expense');
@@ -37,6 +41,23 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+
+  const handleReviewedSync = async () => {
+    if (!window.confirm(`Apply the reviewed import? ${importPreview.add} records will be added, ${importPreview.update} updated, ${importPreview.skip} duplicates skipped, and ${importPreview.exclude} travel records excluded.`)) return;
+    setSyncing(true);
+    setSyncMessage('');
+    try {
+      await onSyncReviewedExpenses();
+      setSyncMessage('Reviewed expenses synced successfully. Running this again will update the same imported records without duplicates.');
+    } catch (error) {
+      console.error('Reviewed expense sync failed:', error);
+      setSyncMessage('Sync failed. No partial import was committed.');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (appSettings) {
@@ -212,6 +233,30 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
                </button>
            </div>
         </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-100">
+        <div className="flex items-center mb-4">
+          <DatabaseZap className="text-blue-600 mr-2" />
+          <h2 className="text-lg font-bold text-stone-800">Reviewed 2026 Expense Sync</h2>
+        </div>
+        <p className="text-sm text-stone-500 mb-5">Prepared from the reviewed expense ledger. Existing matches are skipped, all Travel &amp; Transport rows are excluded, and the Zeal Launch total is updated to LKR 3,835,850.</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <div className="rounded-lg bg-emerald-50 p-3"><p className="text-xs text-emerald-700">Add</p><p className="text-xl font-bold text-emerald-900">{importPreview.add}</p></div>
+          <div className="rounded-lg bg-blue-50 p-3"><p className="text-xs text-blue-700">Update</p><p className="text-xl font-bold text-blue-900">{importPreview.update}</p></div>
+          <div className="rounded-lg bg-stone-100 p-3"><p className="text-xs text-stone-600">Skip duplicates</p><p className="text-xl font-bold text-stone-800">{importPreview.skip}</p></div>
+          <div className="rounded-lg bg-rose-50 p-3"><p className="text-xs text-rose-700">Travel excluded</p><p className="text-xl font-bold text-rose-900">{importPreview.exclude}</p></div>
+        </div>
+        <div className="text-sm text-stone-600 mb-5 space-y-1">
+          <p>New recognized LKR: <strong>LKR {importPreview.recognizedLkr.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></p>
+          <p>New approved/budgeted: <strong>LKR {importPreview.commitmentsLkr.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></p>
+          <p>USD items converted to LKR: <strong>LKR {importPreview.convertedUsdLkr.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></p>
+        </div>
+        <button onClick={handleReviewedSync} disabled={syncing} className="flex items-center px-4 py-2 bg-blue-600 disabled:bg-blue-300 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          {syncing ? <Loader2 size={18} className="mr-2 animate-spin" /> : <DatabaseZap size={18} className="mr-2" />}
+          {syncing ? 'Syncing…' : 'Apply Reviewed Expense Sync'}
+        </button>
+        {syncMessage && <p className="mt-3 text-sm font-medium text-stone-700">{syncMessage}</p>}
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-100">

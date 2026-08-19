@@ -30,7 +30,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ totalBudget, totalSpend, totalA
            </div>
         </div>
         <div>
-          <p className="text-sm font-medium text-stone-500">Total Spend</p>
+          <p className="text-sm font-medium text-stone-500">Recognized Spend</p>
           <h3 className="text-2xl font-bold text-rose-600 mt-1">LKR {totalSpend.toLocaleString()}</h3>
         </div>
       </div>

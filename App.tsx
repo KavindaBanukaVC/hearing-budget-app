@@ -18,6 +18,7 @@ import {
   signOut
 } from './services/firebase';
 import { sendAllocationAlert } from './services/emailService';
+import { REVIEWED_EXPENSES_2026, REVIEWED_EXPENSE_CATEGORIES, REVIEWED_IMPORT_PREVIEW, ZEAL_FINAL_2026 } from './data/reviewedExpenses2026';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -214,6 +215,39 @@ const App: React.FC = () => {
      } catch (e) { console.error(e); }
   };
 
+  const syncReviewedExpenses = async () => {
+    const batch = writeBatch(db);
+
+    REVIEWED_EXPENSE_CATEGORIES.forEach((category) => {
+      if (categories.some((existing) => existing.type === category.type && existing.name.toLowerCase() === category.name.toLowerCase())) return;
+      const slug = category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      batch.set(doc(db, 'categories', `reviewed-${slug}`), category, { merge: true });
+    });
+
+    REVIEWED_EXPENSES_2026.forEach((transaction) => {
+      batch.set(doc(db, 'transactions', `reviewed-2026-row-${transaction.sourceRow}`), transaction, { merge: true });
+    });
+
+    const existingZeal = transactions.find((transaction) => /zeal launch/i.test(transaction.description));
+    if (existingZeal) {
+      batch.update(doc(db, 'transactions', existingZeal.id), {
+        amount: ZEAL_FINAL_2026.amount,
+        status: ZEAL_FINAL_2026.status,
+        currency: ZEAL_FINAL_2026.currency,
+        originalAmount: ZEAL_FINAL_2026.originalAmount,
+        evidenceType: ZEAL_FINAL_2026.evidenceType,
+        sourceReference: ZEAL_FINAL_2026.sourceReference,
+        notes: ZEAL_FINAL_2026.notes,
+        importBatch: ZEAL_FINAL_2026.importBatch,
+        sourceRow: ZEAL_FINAL_2026.sourceRow,
+      });
+    } else {
+      batch.set(doc(db, 'transactions', 'reviewed-2026-row-67'), ZEAL_FINAL_2026);
+    }
+
+    await batch.commit();
+  };
+
   const addRecurringTransaction = async (rt: Omit<RecurringTransaction, 'id'>) => {
     try { await addDoc(collection(db, 'recurring'), rt); } catch (e) { console.error(e); }
   };
@@ -360,7 +394,7 @@ service cloud.firestore {
           <Route path="/budgets" element={<BudgetsPage budgetSources={budgetSources} budgets={budgets} categories={categories} onUpdateSource={updateBudgetSource} onUpdateBudget={updateBudget} />} />
           <Route path="/transactions" element={<TransactionsPage transactions={transactions} recurringTransactions={recurringTransactions} categories={categories} onAdd={addTransaction} onDelete={deleteTransaction} onAddRecurring={addRecurringTransaction} onDeleteRecurring={deleteRecurringTransaction} searchTerm={searchTerm} />} />
           <Route path="/insights" element={<InsightsPage transactions={transactions} budgets={budgets} onUpdateBudget={updateBudget} />} />
-          <Route path="/settings" element={<SettingsPage categories={categories} transactions={transactions} budgets={budgets} appSettings={appSettings} onAddCategory={addCategory} onDeleteCategory={deleteCategory} onEditCategory={editCategory} />} />
+          <Route path="/settings" element={<SettingsPage categories={categories} transactions={transactions} budgets={budgets} appSettings={appSettings} onAddCategory={addCategory} onDeleteCategory={deleteCategory} onEditCategory={editCategory} importPreview={REVIEWED_IMPORT_PREVIEW} onSyncReviewedExpenses={syncReviewedExpenses} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

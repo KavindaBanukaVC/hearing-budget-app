@@ -23,18 +23,27 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, budgets, categories
   // 1. Total Budget = Sum of Budget Sources (Primary + Grants)
   const totalBudget = budgetSources.reduce((sum, src) => sum + src.amount, 0);
 
-  // 2. Total Spend = Expenses + Expired Allocations
+  const isLkr = (transaction: Transaction) => !transaction.currency || transaction.currency === 'LKR';
+  const isCommitment = (transaction: Transaction) => transaction.status === 'Approved' || transaction.status === 'Budgeted';
+  const isRecognizedExpense = (transaction: Transaction) => transaction.type === 'expense' && isLkr(transaction) && !isCommitment(transaction) && transaction.status !== 'Free';
+
+  // 2. Recognized spend = paid/posted/invoiced/confirmed LKR expenses + expired allocations.
   // Expired Allocation: Type is 'allocation' AND date <= today
   const totalSpend = transactions.reduce((sum, t) => {
     const tDate = new Date(t.date);
     tDate.setHours(0, 0, 0, 0);
     
-    if (t.type === 'expense') {
+    if (isRecognizedExpense(t)) {
       return sum + t.amount;
     } else if (t.type === 'allocation' && tDate <= today) {
       // It's an expired allocation, count as spend
       return sum + t.amount;
     }
+    return sum;
+  }, 0);
+
+  const totalCommitments = transactions.reduce((sum, transaction) => {
+    if (transaction.type === 'expense' && isLkr(transaction) && isCommitment(transaction)) return sum + transaction.amount;
     return sum;
   }, 0);
 
@@ -50,14 +59,14 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, budgets, categories
   }, 0);
 
   // 4. Remain Budget
-  const remainBudget = totalBudget - totalSpend - totalAllocations;
+  const remainBudget = totalBudget - totalSpend - totalCommitments - totalAllocations;
 
   // Prepare Pie Chart Data (Spend Breakdown)
   // We consider Expenses and Expired Allocations as "Spend" for the chart
   const expensesByCategory = transactions.reduce((acc, t) => {
     const tDate = new Date(t.date);
     tDate.setHours(0, 0, 0, 0);
-    const isSpend = t.type === 'expense' || (t.type === 'allocation' && tDate <= today);
+    const isSpend = isRecognizedExpense(t) || (t.type === 'allocation' && tDate <= today);
 
     if (isSpend) {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
@@ -125,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, budgets, categories
                     </div>
                   </div>
                   <span className={`font-bold ${isFutureAllocation ? 'text-blue-600' : 'text-stone-800'}`}>
-                    LKR {t.amount.toLocaleString()}
+                    {t.currency || 'LKR'} {(t.currency === 'USD' ? (t.originalAmount ?? t.amount) : t.amount).toLocaleString()}
                   </span>
                 </div>
               );

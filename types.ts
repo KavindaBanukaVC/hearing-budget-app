@@ -10,6 +10,17 @@ export interface Transaction {
   company?: string;
   invoiceNo?: string;
   poNo?: string;
+  status?: 'Posted' | 'Paid' | 'Reimbursed' | 'Invoiced' | 'Approved' | 'Budgeted' | 'Confirmed' | 'Free';
+  currency?: 'LKR' | 'USD';
+  originalCurrency?: 'LKR' | 'USD';
+  originalAmount?: number;
+  exchangeRate?: number;
+  evidenceType?: string;
+  sourceReference?: string;
+  sourceUrl?: string;
+  notes?: string;
+  importBatch?: string;
+  sourceRow?: number;
 }
 
 export interface Budget {

@@ -18,7 +18,7 @@ import {
   signOut
 } from './services/firebase';
 import { sendAllocationAlert } from './services/emailService';
-import { REVIEWED_EXPENSES_2026, REVIEWED_EXPENSE_CATEGORIES, REVIEWED_IMPORT_PREVIEW, ZEAL_FINAL_2026 } from './data/reviewedExpenses2026';
+import { REVIEWED_EXPENSES_2026, REVIEWED_EXPENSE_CATEGORIES, REVIEWED_IMPORT_PREVIEW, REVIEWED_TRAVEL_SOURCE_ROWS, ZEAL_FINAL_2026 } from './data/reviewedExpenses2026';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -227,6 +227,11 @@ const App: React.FC = () => {
     REVIEWED_EXPENSES_2026.forEach((transaction) => {
       batch.set(doc(db, 'transactions', `reviewed-2026-row-${transaction.sourceRow}`), transaction, { merge: true });
     });
+
+    REVIEWED_TRAVEL_SOURCE_ROWS.forEach((sourceRow) => {
+      batch.delete(doc(db, 'transactions', `reviewed-2026-row-${sourceRow}`));
+    });
+    batch.delete(doc(db, 'categories', 'reviewed-travel-transport'));
 
     const existingZeal = transactions.find((transaction) => /zeal launch/i.test(transaction.description));
     if (existingZeal) {

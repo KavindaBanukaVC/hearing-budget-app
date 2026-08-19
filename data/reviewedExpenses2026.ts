@@ -1099,6 +1099,8 @@ export const REVIEWED_EXPENSE_CATEGORIES: Array<Omit<Category, 'id'>> = [
   }
 ];
 
+export const REVIEWED_TRAVEL_SOURCE_ROWS = [28,29,30,31,32,43,47] as const;
+
 export const ZEAL_FINAL_2026 = {
   "sourceRow": 67,
   "date": "2026-03-06",
